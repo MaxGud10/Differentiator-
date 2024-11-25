@@ -1,0 +1,14 @@
+{
+    "code-runner.runInTerminal": true,
+    "cSpell.language": "en,ru",
+    "files.autoSave": "afterDelay",
+    "git.autofetch": true,
+    "makefile.configureOnOpen": true,
+    "cSpell.userWords": [
+        "MXLX"
+    ],
+    "workbench.editorAssociations": {
+        "{git,gitlens}:/**/*.{md,csv,svg}": "default"
+    },
+    "workbench.colorTheme": "One Dark Modern Classic"
+}
