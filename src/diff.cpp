@@ -41,7 +41,7 @@ int main (void) // TODO: сделать
     assert (test);
 
     /*====================================================*/
-    struct Node* node = get_g("x/1$"); // 2^(1+x)+s(x+30)$
+    struct Node* node = get_g("x+0$"); // 2^(1+x)+s(x+30)$
     printf ("\nThe reading is over\n");
     graph_dump (node, NULL);
     // print_in_tex (node, "output.tex");
@@ -67,9 +67,11 @@ int main (void) // TODO: сделать
     print_in_tex (simplified_derivative, "output.tex"); // diff_node
 
     fclose (test);
+                                                                    
 
-    cleanup_buffer (&buffer);
-    delete_tree (node);
+    cleanup_buffer (&buffer);                                       
+    fprintf (stderr, "\n%s:%d %s(): delete_tree\n", __FILE__, __LINE__, __func__);
+    delete_tree (simplified_derivative);
 
     return 0;
 }
@@ -1305,17 +1307,20 @@ Node* simplify (struct Node* node)
         switch ((int)node->value)
         {
             case ADD: // a + 0 = a, 0 + a = a
+                fprintf (stderr, "\n%s:%d: !!! <case ADD>, node %p, node->left->type = %d, node->left->value = %d'%c'\n", __FILE__, __LINE__, node, node->left->type, (int)node->left->value, (int)node->left->value);
+
                 if (node->left->type == NUM && node->left->value == 0) 
                 {
                     fprintf(stderr, "\n%s:%d %s(): ADD: Applying rule a + 0 = a on Node [%p]\n", __FILE__, __LINE__, __func__, node);
                     struct Node* temp = node->right;
-                    // node->type  = 666;
-                    // node->value = 777;
-                    // node->left  = NULL;
-                    // node->right  = NULL;
 
-                    // free(node->left);
-                    // free(node);
+                    fprintf (stderr, "\n%s:%d %s(): node->left = %p\n", __FILE__, __LINE__, __func__, node->left);                 
+                    free(node->left);
+
+                    fprintf (stderr, "\n%s:%d %s(): node = %p\n", __FILE__, __LINE__, __func__, node);
+                    free(node);
+
+                    fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value);
                     return temp;
                 }
 
@@ -1323,8 +1328,14 @@ Node* simplify (struct Node* node)
                 {
                     printf("\n%s:%d %s(): Applying rule 0 + a = a on Node [%p]\n", __FILE__, __LINE__, __func__, node);
                     struct Node* temp = node->left;
+
+                    fprintf (stderr, "\n%s:%d %s(): node->right = %p\n", __FILE__, __LINE__, __func__, node->right);
                     free(node->right);
+
+                    fprintf (stderr, "\n%s:%d %s(): node = %p\n", __FILE__, __LINE__, __func__, node);
                     free(node);
+
+                    fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value);
                     return temp;
                 }
                 break;
@@ -1350,8 +1361,10 @@ Node* simplify (struct Node* node)
                     
                     node->type  = NUM;
                     node->value = 0;
-                    // free(node->left);
-                    // free(node->right); // !!!!
+
+                    free(node->left);
+                    free(node->right); // !!!!
+
                     node->left = node->right = NULL;
                     
                 fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, node, node->type, (int)node->value, (int)node->value);
@@ -1362,8 +1375,10 @@ Node* simplify (struct Node* node)
                     printf("\n%s(): MUL/RIGHT: Applying rule 0 * a = 0 on TEMP [%p]\n", __func__, node);
                     node->type  = NUM;
                     node->value = 0;
-                    // free(node->left); //!!!
-                    // free(node->right);
+
+                    free(node->left); //!!!
+                    free(node->right);
+
                     node->left = node->right = NULL;
 
                     fprintf (stderr, "%s(): MUL/RIGHT_BY_0, finished. TEMP = %p | type = %d | value = %d(%c)", __func__, node, node->type, (int)node->value, (int)node->value);
@@ -1434,7 +1449,7 @@ int delete_tree (struct Node* node)
 
     if (node->right) delete_tree (node->right);
 
-    //free (node); // ???
+    free (node); // ???
 
     return 0;
 }
