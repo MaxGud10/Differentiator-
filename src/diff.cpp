@@ -13,14 +13,6 @@
 #include "read_rec_desc.h"
 #include "color.h"
 
-// (^ (x) (6))
-
-// #ifdef DEBUG
-//     #define DBG(...) __VA_ARGS__
-// #else
-//     #define DBG(...)
-// #endif
-
 #define CHECK_NODE(node, action)                                     \
     if ((node) == NULL)                                              \
     {                                                                \
@@ -41,7 +33,7 @@ int main (void) // TODO: сделать
     assert (test);
 
     /*====================================================*/
-    struct Node* node = get_g("x+0$"); // 2^(1+x)+s(x+30)$
+    struct Node* node = get_g("2^(x*1+(1+4))$"); // 2^(1+x)+s(x+30)$
     printf ("\nThe reading is over\n");
     graph_dump (node, NULL);
     // print_in_tex (node, "output.tex");
@@ -57,21 +49,31 @@ int main (void) // TODO: сделать
     // GlobalX = 5;
     // printf ("\n""answer = %lg\n", eval (node));
 
-    // struct Node* diff_node = differentiator (node);
+    struct Node* diff_node = differentiator (node);
+    struct Node* simplified_derivative = simplify (diff_node);
+    double res = constant_folding (diff_node);
+
     // graph_dump (node, NULL);
 
-    struct Node* simplified_derivative = simplify (node);
-    fprintf (stderr, "\n%s(): MUL/LEFT_BY_1, RETURN. RESULT = %p | type = %d | value = %d(%c)\n", __func__, simplified_derivative, simplified_derivative->type, (int)simplified_derivative->value, (int)simplified_derivative->value);
-    //graph_dump (node, NULL);
+    // struct Node* simplified_derivative = simplify (diff_node);
+    // double res = constant_folding (diff_node);
+
+    // fprintf (stderr, "\n%s(): MUL/LEFT_BY_1, RETURN. RESULT = %p | type = %d | value = %d(%c)\n", __func__, simplified_derivative, simplified_derivative->type, (int)simplified_derivative->value, (int)simplified_derivative->value);
+    // double res = constant_folding (node);
+    // fprintf (stderr, "\n%s:%d %s(): res = %lf\n", __FILE__, __LINE__, __func__, res);
+
+    /*=========================================================================*/
+    // struct Node* simplified_derivative = evaluate_and_simplify(node);
+    // graph_dump (node, NULL);
+    /*=========================================================================*/
     
     print_in_tex (simplified_derivative, "output.tex"); // diff_node
 
-    fclose (test);
-                                                                    
+    fclose (test);                                                              
 
     cleanup_buffer (&buffer);                                       
-    fprintf (stderr, "\n%s:%d %s(): delete_tree\n", __FILE__, __LINE__, __func__);
-    delete_tree (simplified_derivative);
+    //fprintf (stderr, "\n%s:%d %s(): delete_tree\n", __FILE__, __LINE__, __func__);
+    delete_tree (node);
 
     return 0;
 }
@@ -172,7 +174,7 @@ int print_in_tex (struct Node* node, const char* filename)
     }
 
     fprintf (file, "\n$$");
-        printf("\nWriting to Tex file started. Calling print_inorder...\n");
+    DBG( printf("\nWriting to Tex file started. Calling print_inorder...\n"));
 
     int result = print_inorder (node, file);
     if (result != 0)
@@ -183,7 +185,7 @@ int print_in_tex (struct Node* node, const char* filename)
     }
 
     fprintf (file, "$$\n");
-    printf("\nWriting to Tex file finished. Closing file.\n");
+    DBG (printf("\nWriting to Tex file finished. Closing file.\n"));
 
     fclose (file);
 
@@ -193,7 +195,7 @@ int print_in_tex (struct Node* node, const char* filename)
 int print_inorder(struct Node* node, FILE* file)
 {
     CHECK_NODE(node, return -1);
-    printf("\nnode->type = %d |  value = %lg(%c) | node->left = %p | node->right = %p\n", node->type, node->value, (int)node->value, node->left, node->right);
+    DBG( printf("\nnode->type = %d |  value = %lg(%c) | node->left = %p | node->right = %p\n", node->type, node->value, (int)node->value, node->left, node->right));
 
     bool brackets = (node->type == OP && node->left != NULL && node->right != NULL);
 
@@ -203,7 +205,7 @@ int print_inorder(struct Node* node, FILE* file)
     if (brackets)
     {
         fprintf(file, " ( ");
-        printf("\n Opened bracket\n");
+        DBG( printf("\n Opened bracket\n"));
     }
 
     if (node->type == FUNC)
@@ -211,7 +213,7 @@ int print_inorder(struct Node* node, FILE* file)
         if (node->value == 's')
         {
             fprintf(file, " \\sin(");  
-            printf("\nPrinted function: \\sin\n");
+            DBG( printf("\nPrinted function: \\sin\n"));
 
             if (node->left)
             {
@@ -223,7 +225,7 @@ int print_inorder(struct Node* node, FILE* file)
         else if (node->value == 'c')
         {
             fprintf(file, " \\cos(");  
-            printf("\nPrinted function: \\cos\n");
+            DBG( printf("\nPrinted function: \\cos\n"));
 
             if (node->left)
             {
@@ -236,7 +238,7 @@ int print_inorder(struct Node* node, FILE* file)
         else if (node->value == 'n') // ln
         {
             fprintf (file, "\\ln");
-            printf("\nPrinted function: ln\n");
+            DBG( printf("\nPrinted function: ln\n"));
 
             if (node->left)
             {
@@ -249,7 +251,7 @@ int print_inorder(struct Node* node, FILE* file)
         else if (node->value == 'l')
         {
             fprintf(file, " log_{"); // Печатаем "log"
-            printf("\nPrinted function: log\n");
+            DBG( printf("\nPrinted function: log\n"));
 
             if (node->left)
             {
@@ -257,7 +259,7 @@ int print_inorder(struct Node* node, FILE* file)
             }
 
             fprintf(file, "}("); // Разделяем запятой
-            printf("\nPrinted comma for log\n");
+            DBG( printf("\nPrinted comma for log\n"));
 
             // Печатаем аргумент логарифма
             if (node->right)
@@ -271,7 +273,7 @@ int print_inorder(struct Node* node, FILE* file)
         else if (node->value == 't')
         {
             fprintf(file, " \\tan(");  
-            printf("\nPrinted function: \\tan\n");
+            DBG (printf("\nPrinted function: \\tan\n"));
 
             if (node->left)
             {
@@ -286,16 +288,16 @@ int print_inorder(struct Node* node, FILE* file)
     if (node->left)
     {
         fprintf(file, " { ");
-        printf("\nMoving to the left subtree...\n");
+        DBG (printf("\nMoving to the left subtree...\n"));
         print_inorder(node->left, file);
         fprintf(file, " } ");
-        printf("\nReturned from the left subtree\n");
+        DBG (printf("\nReturned from the left subtree\n"));
     }
 
     if (node->type == NUM)
     {
         fprintf(file, " %lg ", node->value);
-        printf("\nPrinted number: %lg\n", node->value);
+        DBG (printf("\nPrinted number: %lg\n", node->value));
     }
 
     else
@@ -303,7 +305,7 @@ int print_inorder(struct Node* node, FILE* file)
         if (node->type == OP && node->value == DIV)
         {
             fprintf(file, " \\over ");
-            printf("\nPrinted operation DIV (division)\n");
+            DBG (printf("\nPrinted operation DIV (division)\n"));
         }
 
         else if (node->type == OP && node->value == MUL)
@@ -312,29 +314,29 @@ int print_inorder(struct Node* node, FILE* file)
         else if (node->type == OP && node->value == POW)
         {
             fprintf(file, " ^ ");
-            printf("\nPrinted operation POW (power)\n");
+            DBG (printf("\nPrinted operation POW (power)\n"));
         }
 
         else
         {
             fprintf(file, " %c ", (int)node->value);
-            printf("\nPrinted operator: %c\n", (int)node->value);
+            DBG (printf("\nPrinted operator: %c\n", (int)node->value));
         }
     }
 
     if (node->right)
     {
         fprintf(file, " { ");
-        printf("\nMoving to the right subtree...\n");
+        DBG (printf("\nMoving to the right subtree...\n"));
         print_inorder(node->right, file);
         fprintf(file, " } ");
-        printf("\nReturned from the right subtree\n");
+        DBG (printf("\nReturned from the right subtree\n"));
     }
 
     if (brackets)
     {
         fprintf(file, " ) ");
-        printf("\nClosed bracket\n");
+        DBG (printf("\nClosed bracket\n"));
     }
 
     return 0;
@@ -1017,32 +1019,75 @@ Node* read_node_symbol (struct Node* node, int level, struct Buffer* buffer)
 
 double eval (struct Node* node)
 {
-    DBG( printf ("\nnode->type = %d\n", node->type); )
+    DBG( fprintf (stderr, "\nnode->type = %d\n", node->type); )
 
     if (node->type == NUM)
-        return node->value;
+    {
+        double value = node->value;
+        fprintf (stderr, "node->type = NUM >>> node->value = %lg\n\n", node->value);
+
+        delete_node (node);
+
+        return value;
+    }
 
     if (node->type == VAR)
-        return GlobalX; // !!!!!!!!!
+    {
+        fprintf (stderr, "node->type = VAR >>> node->value = %c\n\n", (int) node->value);
+        return NAN; // !!!!!!!!!
+    }
 
     if (node->type == OP)
     {
-        graph_dump (node, NULL);
 
         fprintf (stderr, "\nnode->type = %.2lf | %c\nnode->value = %d   | ADD = %d\n", node->value, (int) node->value, (int) node->value, ADD);
         switch ((int) node->value)
         {
-            case ADD:  {
+            case ADD:  
+            {
                 double e_left  = eval (node->left );
                 double e_right = eval (node->right);
+
                 DBG( fprintf (stderr ,"\ne_left = %f | e_right = %f\n", e_left, e_right); )
-                return eval (node->left) + eval (node->right); }
 
-            case SUB:  { return eval (node->left) - eval (node->right); }
+                double res = e_left + e_right;
 
-            case MUL:  { return eval (node->left) * eval (node->right); }
+                delete_node (node);
 
-            case DIV:  { return eval (node->left) / eval (node->right); }
+                return res;
+            }
+            case SUB:  
+            {
+                double res = eval (node->left) -
+                             eval (node->right);
+                printf ("case SUB: result = %lg\n\n", res);
+
+                delete_node (node);
+
+                return res;
+            }
+
+            case MUL:  
+            {
+                double res = eval (node->left) *
+                             eval (node->right);
+                printf ("case MUL: result = %lg\n\n", res);
+
+                delete_node (node);
+
+                return res;
+            }
+
+            case DIV:  
+            {
+                double res = eval (node->left) /
+                             eval (node->right);
+                printf ("case DIV: result = %lg\n\n", res);
+
+                delete_node (node);
+
+                return res;
+            }
 
             // case SQRT: { return sqrt (eval (node->left));               }
 
@@ -1061,11 +1106,6 @@ double eval (struct Node* node)
     printf ("\n\nERROR return govno\n\n");
     return -1;
 }
-
-#define _COMPOUND(diff_res) _MUL (diff_res, differentiator (node->left) );
-#define _MUL(left, right) new_node (OP, MUL, (left), (right))
-#define _COS(left, right) new_node (OP, COS, (left), (right))
-#define _cL   copy (node->left)
 
 Node* differentiator (struct Node* node)
 {
@@ -1271,71 +1311,71 @@ Node* simplify (struct Node* node)
 {
     CHECK_NODE (node, return NULL);
 
-    printf("\n%s(): Processing Node [%p], type = %d, value = %.1lf | '%c'\n", __func__, node, node->type, node->value, (int)node->value);
+    DBG (printf("\n%s(): Processing Node [%p], type = %d, value = %.1lf | '%c'\n", __func__, node, node->type, node->value, (int)node->value));
 
     if (node->left) 
     {
-        fprintf(stderr, "\nGoing to simplify left child of Node...\n");
-        fprintf(stderr, "BEFORE %s (left): Node->left = [%p], type = %d, value = %.1lf | '%c'\n", __func__, node->left, node->left->type, node->left->value, (int)node->left->value);                       
+        DBG (fprintf(stderr, "\nGoing to simplify left child of Node...\n"));
+        DBG (fprintf(stderr, "BEFORE %s (left): Node->left = [%p], type = %d, value = %.1lf | '%c'\n", __func__, node->left, node->left->type, node->left->value, (int)node->left->value));                       
         
         Node* ret = simplify(node->left);
         
-        if (ret != NULL) fprintf (stderr, "\nAFTER %s (left): RET = [%p] | type = %d, value = %.1lf | '%c'\n", __func__, ret, ret->type, ret->value, (int)ret->value); // virtual space
-        else             fprintf (stderr, "[%d]%s(): RET == NULL\n", __LINE__, __func__);
+        if (ret != NULL) DBG( fprintf (stderr, "\nAFTER %s (left): RET = [%p] | type = %d, value = %.1lf | '%c'\n", __func__, ret, ret->type, ret->value, (int)ret->value)); // virtual space
+        else             DBG (fprintf (stderr, "[%d]%s(): RET == NULL\n", __LINE__, __func__));
             // node->left = simplify(node->left);
         node->left = ret;
 
-        fprintf (stderr, "REPLACED node->left.\n\n");
+        DBG (fprintf (stderr, "REPLACED node->left.\n\n"));
     }
 
     if (node->right) 
     {
-        printf("\n%s(): Going to simplify right child of Node [%p] | type = %d, value = %.1lf | '%c'\n", __func__, node, node->type, node->value, (int)node->value);
+        DBG (printf("\n%s(): Going to simplify right child of Node [%p] | type = %d, value = %.1lf | '%c'\n", __func__, node, node->type, node->value, (int)node->value));
         Node* ret = simplify(node->right);
-        if (ret != NULL) fprintf (stderr, "\nAFTER simplify left child of RET [%p] | type = %d, value = %.1lf | '%c | '\n", ret, ret->type, ret->value, (int)ret->value);
-        else             fprintf (stderr, "[%d]%s(): ret == NULL\n", __LINE__, __func__);
+        if (ret != NULL) DBG (fprintf (stderr, "\nAFTER simplify left child of RET [%p] | type = %d, value = %.1lf | '%c | '\n", ret, ret->type, ret->value, (int)ret->value));
+        else             DBG (fprintf (stderr, "[%d]%s(): ret == NULL\n", __LINE__, __func__));
         
         node->right = ret;
 
         //node->right = simplify(node->right);
     }
      
-    fprintf (stderr, "\nNode: %p | type  = %d | value %d (%c)\n", node, node->type, (int)node->value, (int)node->value);
+    DBG (fprintf (stderr, "\nNode: %p | type  = %d | value %d (%c)\n", node, node->type, (int)node->value, (int)node->value));
     
     if (node->type == OP) 
     {
         switch ((int)node->value)
         {
             case ADD: // a + 0 = a, 0 + a = a
-                fprintf (stderr, "\n%s:%d: !!! <case ADD>, node %p, node->left->type = %d, node->left->value = %d'%c'\n", __FILE__, __LINE__, node, node->left->type, (int)node->left->value, (int)node->left->value);
+                DBG (fprintf (stderr, "\n%s:%d: !!! <case ADD>, node %p, node->left->type = %d, node->left->value = %d'%c'\n", __FILE__, __LINE__, node, node->left->type, (int)node->left->value, (int)node->left->value));
 
                 if (node->left->type == NUM && node->left->value == 0) 
                 {
-                    fprintf(stderr, "\n%s:%d %s(): ADD: Applying rule a + 0 = a on Node [%p]\n", __FILE__, __LINE__, __func__, node);
+                    DBG (fprintf(stderr, "\n%s:%d %s(): ADD: Applying rule a + 0 = a on Node [%p]\n", __FILE__, __LINE__, __func__, node));
                     struct Node* temp = node->right;
 
-                    fprintf (stderr, "\n%s:%d %s(): node->left = %p\n", __FILE__, __LINE__, __func__, node->left);                 
-                    free(node->left);
+                    DBG (fprintf (stderr, "\n%s:%d %s(): node->left = %p\n", __FILE__, __LINE__, __func__, node->left));
+                    //free(node->left);
 
-                    fprintf (stderr, "\n%s:%d %s(): node = %p\n", __FILE__, __LINE__, __func__, node);
-                    free(node);
+                    DBG (fprintf (stderr, "\n%s:%d %s(): node = %p\n", __FILE__, __LINE__, __func__, node));
+                    //free(node);
 
-                    fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value);
+                    DBG (fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value));
                     return temp;
                 }
 
                 if (node->right->type == NUM && node->right->value == 0) 
                 {
-                    printf("\n%s:%d %s(): Applying rule 0 + a = a on Node [%p]\n", __FILE__, __LINE__, __func__, node);
+                    DBG (printf("\n%s:%d %s(): Applying rule 0 + a = a on Node [%p]\n", __FILE__, __LINE__, __func__, node));
                     struct Node* temp = node->left;
 
-                    fprintf (stderr, "\n%s:%d %s(): node->right = %p\n", __FILE__, __LINE__, __func__, node->right);
-                    free(node->right);
+                    DBG (fprintf (stderr, "\n%s:%d %s(): node->right = %p\n", __FILE__, __LINE__, __func__, node->right));
+                    //free(node->right);
 
-                    fprintf (stderr, "\n%s:%d %s(): node = %p\n", __FILE__, __LINE__, __func__, node);
-                    free(node);
+                    DBG (fprintf (stderr, "\n%s:%d %s(): node = %p\n", __FILE__, __LINE__, __func__, node));
+                    //free(node);
 
-                    fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value);
+                    DBG (fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value));
                     return temp;
                 }
                 break;
@@ -1343,66 +1383,66 @@ Node* simplify (struct Node* node)
             case SUB: // a - 0 = a
                 if (node->right->type == NUM && node->right->value == 0) 
                 {
-                    printf("\n%s:%d %s(): Applying rule a - 0 = a on Node [%p]\n", __FILE__, __LINE__, __func__, node);
+                    DBG (printf("\n%s:%d %s(): Applying rule a - 0 = a on Node [%p]\n", __FILE__, __LINE__, __func__, node));
                     struct Node* temp = node->left;
-                    free(node->right);
-                    free(node);
+                    //free(node->right);
+                    //free(node);
                     return temp;
                 }
                 break;
 
             case MUL: // a * 1 = a, 1 * a = a, a * 0 = 0, 0 * a = 0
-                fprintf (stderr, "\n%s:%d: !!! <case MUL>, node %p, node->left->type = %d, node->left->value = %d'%c'\n", __FILE__, __LINE__, node, node->left->type, (int)node->left->value, (int)node->left->value);
+                DBG (fprintf (stderr, "\n%s:%d: !!! <case MUL>, node %p, node->left->type = %d, node->left->value = %d'%c'\n", __FILE__, __LINE__, node, node->left->type, (int)node->left->value, (int)node->left->value));
                 
 
                 if (node->left->type == NUM && node->left->value == 0) 
                 {
-                    printf("\n%s:%d %s(): MUL/LEFT: Applying rule a * 0 = 0 on Node [%p]\n", __FILE__, __LINE__,__func__, node);
+                    DBG (printf("\n%s:%d %s(): MUL/LEFT: Applying rule a * 0 = 0 on Node [%p]\n", __FILE__, __LINE__,__func__, node));
                     
                     node->type  = NUM;
                     node->value = 0;
 
-                    free(node->left);
-                    free(node->right); // !!!!
+                    //free(node->left);
+                    //free(node->right); // !!!!
 
                     node->left = node->right = NULL;
                     
-                fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, node, node->type, (int)node->value, (int)node->value);
+                    DBG (fprintf (stderr, "%s(): MUL/LEFT_BY_0: Finished. Node = %p | type = %d | value = %d(%c)", __func__, node, node->type, (int)node->value, (int)node->value));
                 } 
                 
                 else if (node->right->type == NUM && node->right->value == 0)
                 {
-                    printf("\n%s(): MUL/RIGHT: Applying rule 0 * a = 0 on TEMP [%p]\n", __func__, node);
+                    DBG (printf("\n%s(): MUL/RIGHT: Applying rule 0 * a = 0 on TEMP [%p]\n", __func__, node));
                     node->type  = NUM;
                     node->value = 0;
 
-                    free(node->left); //!!!
-                    free(node->right);
+                    //free(node->left); //!!!
+                    //free(node->right);
 
                     node->left = node->right = NULL;
 
-                    fprintf (stderr, "%s(): MUL/RIGHT_BY_0, finished. TEMP = %p | type = %d | value = %d(%c)", __func__, node, node->type, (int)node->value, (int)node->value);
+                    DBG (fprintf (stderr, "%s(): MUL/RIGHT_BY_0, finished. TEMP = %p | type = %d | value = %d(%c)", __func__, node, node->type, (int)node->value, (int)node->value));
                 }
                 
                 else if (node->left->type == NUM && node->left->value == 1) 
                 {
-                    printf("\n%s:%d %s(): Applying rule a * 1 = a on Node [%p]\n", __FILE__, __LINE__, __func__, node);
+                    DBG (printf("\n%s:%d %s(): Applying rule a * 1 = a on Node [%p]\n", __FILE__, __LINE__, __func__, node));
                     struct Node* temp = node->right; // TODO переименовать temp
-                    // free(node->left);
-                    // free(node);
+                    //free(node->left);
+                    //(node);
 
-                    fprintf (stderr, "%s(): MUL/LEFT_BY_1, finished. RESULT = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value);
+                    DBG (fprintf (stderr, "%s(): MUL/LEFT_BY_1, finished. RESULT = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value));
                     return temp;
                 }
 
                 else if (node->right->type == NUM && node->right->value == 1) 
                 {
-                    printf("\n%s:%d %s(): Applying rule 1 * a = a on Node [%p]\n", __FILE__, __LINE__, __func__, node);
+                    DBG (printf("\n%s:%d %s(): Applying rule 1 * a = a on Node [%p]\n", __FILE__, __LINE__, __func__, node));
                     struct Node* temp = node->left;
-                    // free(node->right);
-                    // free(node);
+                    //free(node->right);
+                    //free(node);
 
-                    fprintf (stderr, "%s(): MUL/LEFT_BY_1, finished. RESULT = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value);                   
+                    DBG (fprintf (stderr, "%s(): MUL/LEFT_BY_1, finished. RESULT = %p | type = %d | value = %d(%c)", __func__, temp, temp->type, (int)temp->value, (int)temp->value)); 
                     return temp;
                 }
                 break;
@@ -1410,10 +1450,10 @@ Node* simplify (struct Node* node)
             case DIV: // a / 1 = a
                 if (node->right->type == NUM && node->right->value == 1) 
                 {
-                    printf("\n%s(): Applying rule a / 1 = a on Node [%p]\n", __func__, node);
+                    DBG (printf("\n%s(): Applying rule a / 1 = a on Node [%p]\n", __func__, node));
                     struct Node* temp = node->left;
-                    // free(node->right);
-                    // free(node);
+                    //free(node->right);
+                    //free(node);
                     return temp;
                 }
                 break;
@@ -1428,6 +1468,58 @@ Node* simplify (struct Node* node)
     return node;
 }
 
+double constant_folding (struct Node* node)
+{
+    assert (node);
+
+    int count_changes = 0;
+
+    if (node->left)
+        count_changes += constant_folding (node->left);
+
+    if (node->right)
+        count_changes += constant_folding (node->right);
+
+    if (node->type == OP)
+        if (node->left->type == NUM && node->right->type == NUM)
+        {
+            double answer = eval (node);
+            fprintf (stderr, "\n%s:%d %s(): node [%p]: answer = %lg\n\n",__FILE__, __LINE__, __func__,  node, answer);
+
+            node->type  = NUM;
+            node->value = answer;
+
+            count_changes++;
+        }
+
+    return count_changes;
+}
+
+struct Node* evaluate_and_simplify (struct Node* node)
+{
+    for (int i = 0; i < 100; i++)
+    {
+        int changes = 0;
+
+        struct Node* new_node = simplify(node);
+        if (new_node != node) 
+        {
+            changes++;
+            node = new_node; // Если simplify вернул другой узел, обновляем дерево
+        }
+
+        if (constant_folding(node) != 0)
+            changes++;
+
+        fprintf(stderr, "\nchanges = %d\n\n", changes);
+
+        if (changes == 0)
+            break;
+    }
+
+    return node;
+}
+
 void cleanup_buffer(struct Buffer* buffer) 
 {
     if (buffer->buffer) 
@@ -1436,6 +1528,24 @@ void cleanup_buffer(struct Buffer* buffer)
         buffer->buffer  = NULL;
         buffer->current = NULL;
     }
+}
+
+int delete_node (struct Node* node)
+{
+    if (node == NULL)
+        fprintf (stderr, "node = NULL\n");
+
+    fprintf (stderr, "node [%p], node->left = [%p], node->right = [%p]\n", node, node->left, node->right);
+
+    node->type  = 666;
+    node->value = 0;
+
+    node->left  = NULL;
+    node->right = NULL;
+
+    //free (node);
+
+    return 0;
 }
 
 int delete_tree (struct Node* node)
@@ -1449,7 +1559,7 @@ int delete_tree (struct Node* node)
 
     if (node->right) delete_tree (node->right);
 
-    free (node); // ???
+    //free (node); // ???
 
     return 0;
 }

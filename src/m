@@ -1,0 +1,3 @@
+#! /bin/sh
+
+	g++ -g -fsanitize=address read_rec_desc.cpp diff.cpp -I include

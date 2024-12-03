@@ -57,14 +57,11 @@ Node* read_node_symbol  (struct Node* node, int level, struct Buffer* buffer);
 
 double eval (struct Node* node);
 
-Node* differentiator (struct Node* node);
-Node* copy           (struct Node* node);
-Node* simplify       (struct Node* node);
-int simplification(struct Node* root, struct Node* parent);
-int delete_sub_tree (struct Node* node);
-int is_value_equal(struct Node* node, int value);
-void verificator(struct Node* node, const char* filename, int line);
-int   simplifer      (struct Node* node, struct Node* parent);
+Node*  differentiator        (struct Node* node);
+Node*  copy                  (struct Node* node);
+Node*  simplify              (struct Node* node);
+double constant_folding      (struct Node* root);
+Node*  evaluate_and_simplify (struct Node* node);
 
 
 int  graph_dump             (struct Node* node, struct Node* selection);
@@ -87,6 +84,7 @@ void close_tex_file (void);
 
 void cleanup_buffer  (struct Buffer* buffer);
 int  delete_tree     (struct Node* node); 
+int  delete_node     (struct Node* node);
 
 /*====ТЕСТЫ====*/
 int test_graph_dump ();
